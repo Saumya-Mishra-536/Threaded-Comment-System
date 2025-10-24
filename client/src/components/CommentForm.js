@@ -31,7 +31,7 @@ const CommentForm = ({ onCommentAdded }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-comment-border p-4 mb-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-2 text-sm text-red-700 mb-3">{error}</div>
       )}
@@ -41,7 +41,7 @@ const CommentForm = ({ onCommentAdded }) => {
           placeholder="Your name"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
-          className="w-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+          className="w-40 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isSubmitting}
         />
         <input
@@ -49,7 +49,7 @@ const CommentForm = ({ onCommentAdded }) => {
           placeholder="Add a comment"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isSubmitting}
         />
         <button
