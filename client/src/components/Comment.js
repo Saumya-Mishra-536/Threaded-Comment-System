@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatTimeAgo, generateAvatar } from '../utils/timeUtils';
 import { commentsAPI } from '../utils/api';
 
@@ -9,27 +9,44 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
   const [isLiking, setIsLiking] = useState(false);
   const [showMoreReplies, setShowMoreReplies] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [hasLiked, setHasLiked] = useState(false); // Track if user has liked this comment
   const [isAnimating, setIsAnimating] = useState(false);
+  const [localLikeCount, setLocalLikeCount] = useState(comment.likes); // Local like count
 
   const avatar = generateAvatar(comment.author);
   const maxDepth = 3; // Limit nesting depth for better UX
+
+  // Reset liked state when comment updates (e.g., after refresh)
+  useEffect(() => {
+    setIsLiked(false);
+    setHasLiked(false);
+    setLocalLikeCount(comment.likes); // Update local count when comment changes
+  }, [comment.id, comment.likes]);
 
   const handleLike = async () => {
     if (isLiking) return;
     
     setIsLiking(true);
-    setIsLiked(true); // Set liked state immediately for visual feedback
+    
+    // Toggle the like state
+    const newLikedState = !hasLiked;
+    setIsLiked(newLikedState);
+    setHasLiked(newLikedState);
     setIsAnimating(true); // Trigger animation
     
     // Reset animation after animation completes
     setTimeout(() => setIsAnimating(false), 300);
     
     try {
-      await commentsAPI.likeComment(comment.id);
-      onCommentUpdate(); // Refresh comments
+      const response = await commentsAPI.likeComment(comment.id);
+      // Update local like count with the response from server
+      setLocalLikeCount(response.likes);
+      // Keep the liked state after successful API call
     } catch (error) {
       console.error('Error liking comment:', error);
-      setIsLiked(false); // Reset on error
+      // Revert the state on error
+      setIsLiked(!newLikedState);
+      setHasLiked(!newLikedState);
     } finally {
       setIsLiking(false);
     }
@@ -62,7 +79,7 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
   const hiddenRepliesCount = comment.children.length - 2;
 
   return (
-    <div className={`comment-item bg-white rounded-lg shadow-sm border border-comment-border transition-all duration-200 ${
+    <div className={`comment-item bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 ${
       depth > 0 ? 'ml-8 comment-connector-curve' : ''
     }`}>
       <div className="p-4">
@@ -77,8 +94,8 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
               <span className="font-medium text-gray-900 text-sm">{comment.author}</span>
-              <span className="text-secondary-gray text-xs">•</span>
-              <span className="text-secondary-gray text-xs">{formatTimeAgo(comment.timestamp)}</span>
+              <span className="text-gray-500 text-xs">•</span>
+              <span className="text-gray-500 text-xs">{formatTimeAgo(comment.timestamp)}</span>
             </div>
             
             {/* Comment Text */}
@@ -92,23 +109,28 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
                 onClick={handleLike}
                 disabled={isLiking}
                 className={`flex items-center space-x-1 transition-colors ${
-                  isLiked 
+                  (isLiked || hasLiked)
                     ? 'text-red-500 hover:text-red-600' 
-                    : 'text-secondary-gray hover:text-primary-blue'
+                    : 'text-gray-500 hover:text-blue-600'
                 } ${
                   isLiking ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                <svg className={`w-4 h-4 ${isAnimating ? 'heart-animation' : ''}`} fill={isLiked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                <svg 
+                  className={`w-4 h-4 ${isAnimating ? 'heart-animation' : ''} ${(isLiked || hasLiked) ? 'text-red-500' : ''}`} 
+                  fill={(isLiked || hasLiked) ? "currentColor" : "none"} 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-                <span className={`text-xs ${isLiked ? 'text-red-500' : ''}`}>{comment.likes}</span>
+                <span className={`text-xs ${(isLiked || hasLiked) ? 'text-red-500' : ''}`}>{localLikeCount}</span>
               </button>
               
               {depth < maxDepth && (
                 <button
                   onClick={() => setIsReplying(!isReplying)}
-                  className="text-secondary-gray hover:text-primary-blue transition-colors text-xs font-medium"
+                  className="text-gray-500 hover:text-blue-600 transition-colors text-xs font-medium"
                 >
                   Reply
                 </button>
@@ -120,14 +142,14 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
         {/* Reply Form */}
         {isReplying && (
           <div className="ml-11 mb-4 animate-fade-in">
-            <form onSubmit={handleReply} className="bg-comment-bg rounded-lg p-3">
+            <form onSubmit={handleReply} className="bg-gray-50 rounded-lg p-3">
               <div className="space-y-3">
                 <input
                   type="text"
                   placeholder="Your name"
                   value={replyAuthor}
                   onChange={(e) => setReplyAuthor(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
                 <textarea
@@ -135,21 +157,21 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-blue focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   required
                 />
                 <div className="flex justify-end space-x-2">
                   <button
                     type="button"
                     onClick={() => setIsReplying(false)}
-                    className="px-3 py-1 text-sm text-secondary-gray hover:text-gray-900 transition-colors"
+                    className="px-3 py-1 text-sm text-gray-500 hover:text-gray-900 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!replyText.trim() || !replyAuthor.trim()}
-                    className="px-4 py-1 bg-primary-blue text-white text-sm rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Reply
                   </button>
@@ -175,7 +197,7 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
             {!showMoreReplies && hiddenRepliesCount > 0 && (
               <button
                 onClick={toggleShowMoreReplies}
-                className="text-primary-blue hover:text-blue-600 text-sm font-medium transition-colors"
+                className="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors"
               >
                 + {hiddenRepliesCount} more repl{hiddenRepliesCount === 1 ? 'y' : 'ies'}
               </button>
@@ -184,7 +206,7 @@ const Comment = ({ comment, onCommentUpdate, depth = 0 }) => {
             {showMoreReplies && hiddenRepliesCount > 0 && (
               <button
                 onClick={toggleShowMoreReplies}
-                className="text-secondary-gray hover:text-gray-900 text-sm font-medium transition-colors"
+                className="text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
               >
                 Show less
               </button>
