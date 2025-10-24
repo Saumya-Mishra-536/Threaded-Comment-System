@@ -16,6 +16,9 @@ let users = [
 ];
 // token -> userId
 const sessions = new Map();
+// Track which users have liked which comments
+// Format: { commentId: Set of userIds }
+const commentLikes = new Map();
 
 let comments = [
   {
@@ -102,13 +105,28 @@ function addComment(comment) {
 }
 
 // Helper function to update comment likes
-function updateCommentLikes(commentId) {
+function updateCommentLikes(commentId, userId = 'anonymous') {
   const comment = comments.find(c => c.id === commentId);
-  if (comment) {
-    comment.likes += 1;
-    return comment;
+  if (!comment) return null;
+
+  // Get or create the set of users who liked this comment
+  if (!commentLikes.has(commentId)) {
+    commentLikes.set(commentId, new Set());
   }
-  return null;
+  const userLikes = commentLikes.get(commentId);
+
+  // Toggle like status
+  if (userLikes.has(userId)) {
+    // User has already liked, so unlike
+    userLikes.delete(userId);
+    comment.likes = Math.max(0, comment.likes - 1);
+  } else {
+    // User hasn't liked, so like
+    userLikes.add(userId);
+    comment.likes += 1;
+  }
+
+  return comment;
 }
 
 // Auth helpers
@@ -206,11 +224,13 @@ app.post('/comments', (req, res) => {
   }
 });
 
-// POST /comments/:id/like - Increment like count for a specific comment
+// POST /comments/:id/like - Toggle like count for a specific comment
 app.post('/comments/:id/like', (req, res) => {
   try {
     const { id } = req.params;
-    const updatedComment = updateCommentLikes(id);
+    // For now, use 'anonymous' as userId since we don't have user authentication
+    // In a real app, you'd get this from the authenticated user
+    const updatedComment = updateCommentLikes(id, 'anonymous');
 
     if (!updatedComment) {
       return res.status(404).json({ error: 'Comment not found' });
