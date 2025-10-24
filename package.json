@@ -2,7 +2,7 @@
   "name": "threaded-comment-system",
   "version": "1.0.0",
   "description": "A modern threaded comment system with nested replies and beautiful UI",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
     "install-all": "cd server && npm install && cd ../client && npm install",
     "start": "concurrently \"cd server && npm start\" \"cd client && npm start\"",
