@@ -1,0 +1,36 @@
+{
+  "name": "threaded-comment-system",
+  "version": "1.0.0",
+  "description": "A modern threaded comment system with nested replies and beautiful UI",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "cd server && npm install && cd ../client && npm install",
+    "start": "concurrently \"cd server && npm start\" \"cd client && npm start\"",
+    "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm start\"",
+    "build": "cd client && npm run build",
+    "server": "cd server && npm start",
+    "client": "cd client && npm start"
+  },
+  "keywords": [
+    "comments",
+    "threading",
+    "react",
+    "express",
+    "nested-comments",
+    "ui",
+    "tailwind"
+  ],
+  "author": "SDE-1 Intern",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/threaded-comment-system.git"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}
